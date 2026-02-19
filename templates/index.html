@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phishing URL Detector</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Phishing URL Detector</h1>
+            <p>Enter a URL to check if it's phishing or legitimate</p>
+        </header>
+
+        <main>
+            <form id="detectForm">
+                <div class="input-group">
+                    <input 
+                        type="text" 
+                        id="urlInput" 
+                        name="url" 
+                        placeholder="Enter URL (e.g., http://example.com)"
+                        required
+                    >
+                    <button type="submit">Analyze URL</button>
+                </div>
+            </form>
+
+            <div id="result" class="result-container" style="display: none;">
+                <div class="result-header">
+                    <span id="resultIcon" class="icon"></span>
+                    <h2 id="resultText"></h2>
+                </div>
+                <div class="confidence">
+                    <label>Confidence:</label>
+                    <div class="confidence-bar">
+                        <div id="confidenceFill" class="confidence-fill"></div>
+                    </div>
+                    <span id="confidenceValue"></span>
+                </div>
+                <p class="url-display">Analyzed URL: <span id="analyzedUrl"></span></p>
+            </div>
+
+            <div id="error" class="error-container" style="display: none;">
+                <p id="errorText"></p>
+            </div>
+
+            <div id="loading" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>Analyzing URL...</p>
+            </div>
+        </main>
+
+        <footer>
+            <p>Powered by Machine Learning</p>
+        </footer>
+    </div>
+
+    <script>
+        document.getElementById('detectForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const url = document.getElementById('urlInput').value.trim();
+            const resultDiv = document.getElementById('result');
+            const errorDiv = document.getElementById('error');
+            const loadingDiv = document.getElementById('loading');
+            
+            resultDiv.style.display = 'none';
+            errorDiv.style.display = 'none';
+            loadingDiv.style.display = 'block';
+            
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ url })
+                });
+                
+                const data = await response.json();
+                
+                loadingDiv.style.display = 'none';
+                
+                if (response.ok) {
+                    const resultText = document.getElementById('resultText');
+                    const resultIcon = document.getElementById('resultIcon');
+                    const confidenceFill = document.getElementById('confidenceFill');
+                    const confidenceValue = document.getElementById('confidenceValue');
+                    const analyzedUrl = document.getElementById('analyzedUrl');
+                    
+                    if (data.is_phishing) {
+                        resultText.textContent = '⚠️ Phishing Detected';
+                        resultText.className = 'phishing';
+                        resultIcon.textContent = '⚠️';
+                        confidenceFill.style.backgroundColor = '#e74c3c';
+                    } else {
+                        resultText.textContent = '✓ Legitimate';
+                        resultText.className = 'legitimate';
+                        resultIcon.textContent = '✓';
+                        confidenceFill.style.backgroundColor = '#27ae60';
+                    }
+                    
+                    confidenceFill.style.width = data.confidence + '%';
+                    confidenceValue.textContent = data.confidence + '%';
+                    analyzedUrl.textContent = data.url;
+                    
+                    resultDiv.style.display = 'block';
+                } else {
+                    errorDiv.querySelector('#errorText').textContent = data.error || 'An error occurred';
+                    errorDiv.style.display = 'block';
+                }
+            } catch (err) {
+                loadingDiv.style.display = 'none';
+                errorDiv.querySelector('#errorText').textContent = 'Network error. Please try again.';
+                errorDiv.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
